@@ -23,6 +23,8 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
+            width: 400px;
+            max-width: 90%;
         }
 
         h1 {
@@ -30,13 +32,15 @@
             margin-bottom: 20px;
         }
 
-        input[type="file"] {
+        input[type="file"],
+        input[type="text"] { /* Styling for text input */
             margin-bottom: 20px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             width: 100%;
             box-sizing: border-box;
+            font-family: 'Konnect', sans-serif;
         }
 
         button {
@@ -48,6 +52,9 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -59,90 +66,120 @@
             font-size: 14px;
             color: #555;
             text-align: left;
-            white-space: pre-wrap; 
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            background-color: #fefefe;
+            border-radius: 4px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Bulk Subscriber</h1>
+
+        <div class="input-group">
+            <label for="sendyListId">Enter Sendy List ID:</label>
+            <input type="text" id="sendyListId" placeholder="e.g., 3v2wVngsLxKRf892fLB7vGKA">
+        </div>
+
         <input type="file" id="csvFile" accept=".csv">
         <button onclick="uploadFile()">Upload CSV</button>
         <div id="status-area"></div>
     </div>
 
     <script>
-    async function uploadFile() {
-        const fileInput = document.getElementById('csvFile');
-        const statusArea = document.getElementById('status-area');
-        const file = fileInput.files[0];
+        async function uploadFile() {
+            const fileInput = document.getElementById('csvFile');
+            const statusArea = document.getElementById('status-area');
+            const sendyListIdInput = document.getElementById('sendyListId');
+            const listId = sendyListIdInput.value.trim(); // Get the user's input List ID
+            const file = fileInput.files[0];
 
-        if (!file) {
-            statusArea.textContent = 'Please select a CSV file.';
-            return;
-        }
-
-        statusArea.textContent = 'Processing file...';
-
-        const formData = new FormData();
-        formData.append('csvFile', file);
-
-        try {
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await response.json();
-            let statusText = '';
-
-            if (data.subscribed > 0) {
-                statusText += `Successfully subscribed: ${data.subscribed} users.\n`;
+            if (!listId) {
+                statusArea.textContent = 'Please enter a Sendy List ID.';
+                return;
             }
-            if (data.alreadySubscribed > 0) {
-                statusText += `Already subscribed: ${data.alreadySubscribed} users.\n`;
+
+            if (!file) {
+                statusArea.textContent = 'Please select a CSV file.';
+                return;
             }
-            if (data.bounced > 0) {
-                statusText += `Bounced emails: ${data.bounced}.\n`;
-            }
-            if (data.invalid > 0) {
-                statusText += `Invalid emails: ${data.invalid}.\n`;
-            }
-            if (data.errors && data.errors.length > 0) {
-                statusText += '\nUnexpected errors:\n';
-                data.errors.forEach(msg => {
-                    statusText += `- ${msg}\n`;
+
+            statusArea.textContent = 'Processing file...';
+
+            const formData = new FormData();
+            formData.append('csvFile', file);
+            formData.append('listId', listId); // Send the List ID
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
                 });
-            }
 
-            if (data.failedEmails && (data.failedEmails.bounced.length > 0 || data.failedEmails.invalid.length > 0)) {
-                statusText += '\nFailed Emails:\n';
-                
-                if (data.failedEmails.bounced.length > 0) {
-                    statusText += 'Bounced:\n';
-                    data.failedEmails.bounced.forEach(email => {
-                        statusText += `- ${email}\n`;
+                const data = await response.json();
+
+                let statusText = '';
+                if (data.subscribed > 0) {
+                    statusText += `Successfully subscribed: ${data.subscribed} users.\n`;
+                }
+                if (data.alreadySubscribed > 0) {
+                    statusText += `Already subscribed: ${data.alreadySubscribed} users.\n`;
+                }
+                if (data.bounced > 0) {
+                    statusText += `Bounced emails: ${data.bounced}.\n`;
+                }
+                if (data.invalid > 0) {
+                    statusText += `Invalid emails: ${data.invalid}.\n`;
+                }
+                if (data.errors && data.errors.length > 0) {
+                    statusText += '\nUnexpected errors:\n';
+                    data.errors.forEach(msg => {
+                        statusText += `- ${msg}\n`;
                     });
                 }
 
-                if (data.failedEmails.invalid.length > 0) {
-                    statusText += 'Invalid:\n';
-                    data.failedEmails.invalid.forEach(email => {
-                        statusText += `- ${email}\n`;
-                    });
+                if (data.failedEmails && (data.failedEmails.bounced.length > 0 || data.failedEmails.invalid.length > 0)) {
+                    statusText += '\nFailed Emails:\n';
+                    if (data.failedEmails.bounced.length > 0) {
+                        statusText += 'Bounced:\n';
+                        data.failedEmails.bounced.forEach(email => {
+                            statusText += `- ${email}\n`;
+                        });
+                    }
+                    if (data.failedEmails.invalid.length > 0) {
+                        statusText += 'Invalid:\n';
+                        data.failedEmails.invalid.forEach(email => {
+                            statusText += `- ${email}\n`;
+                        });
+                    }
                 }
-            }
 
-            if (statusText === '') {
-                statusText = 'No users found in the CSV or an unexpected error occurred.';
-            }
+                if (statusText === '') {
+                    statusText = 'No users found in the CSV or an unexpected error occurred.';
+                }
 
-            statusArea.textContent = statusText.trim();
-        } catch (error) {
-            statusArea.textContent = `Error during upload or processing: ${error.message}`;
+                statusArea.textContent = statusText.trim();
+
+            } catch (error) {
+                statusArea.textContent = `Error during upload or processing: ${error.message}`;
+            }
         }
-    }
-</script>
-
+    </script>
 </body>
 </html>
