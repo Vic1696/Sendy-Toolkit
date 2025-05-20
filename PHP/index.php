@@ -314,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
             formData.append('listId', listId);
 
             try {
-                const response = await fetch('index.php', {
+                const response = await fetch(window.location.pathname, {
                     method: 'POST',
                     body: formData,
                 });
