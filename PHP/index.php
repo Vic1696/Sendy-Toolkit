@@ -1,12 +1,9 @@
-
 <?php
-
-// IMPORTANT: Replace the placeholder API key with your actual Sendy Master API Key
-define('SENDY_API_KEY', '_______'); // REPLACE THIS WITH YOUR ACTUAL API KEY
-define('SENDY_API_URL_BASE', '_______'); // Your Sendy installation base URL
-define('SENDY_SUBSCRIBE_ENDPOINT', '/subscribe'); // Path for subscribing
-define('SENDY_GET_BRANDS_ENDPOINT', '/api/brands/get-brands.php'); // Path for getting brands
-define('SENDY_GET_LISTS_ENDPOINT', '/api/lists/get-lists.php'); // Path for getting lists
+define('SENDY_API_KEY', '    '); 
+define('SENDY_API_URL_BASE', '    '); 
+define('SENDY_SUBSCRIBE_ENDPOINT', '/subscribe');
+define('SENDY_GET_BRANDS_ENDPOINT', '/api/brands/get-brands.php');
+define('SENDY_GET_LISTS_ENDPOINT', '/api/lists/get-lists.php');
 
 $masterApiKey = SENDY_API_KEY;
 $sendySubscribeUrl = SENDY_API_URL_BASE . SENDY_SUBSCRIBE_ENDPOINT;
@@ -33,7 +30,6 @@ function callSendyApi($url, $params) {
     ]);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
     curl_setopt($ch, CURLOPT_VERBOSE, true);
-    // Direct verbose output to PHP error log. This will show cURL's internal workings.
     curl_setopt($ch, CURLOPT_STDERR, fopen('php://stderr', 'w')); 
 
     $responseText = curl_exec($ch);
@@ -70,7 +66,7 @@ function getSendyBrands($apiKey) {
     $response = callSendyApi($sendyBrandsApiUrl, $params);
 
     $brandsArray = [];
-    if ($response && is_array($response)) { // Check if it's an array (which it is, of key-value pairs)
+    if ($response && is_array($response)) { 
         foreach ($response as $key => $brandData) {
             // Check if the key starts with 'brand' and it has 'id' and 'name'
             if (strpos($key, 'brand') === 0 && isset($brandData['id']) && isset($brandData['name'])) {
@@ -81,7 +77,7 @@ function getSendyBrands($apiKey) {
             }
         }
     }
-    return $brandsArray; // Return the properly formatted array
+    return $brandsArray; 
 }
 
 /**
@@ -95,12 +91,8 @@ function getSendyLists($apiKey, $brandId) {
     $params = ['api_key' => $apiKey, 'brand_id' => $brandId];
     $response = callSendyApi($sendyListsApiUrl, $params);
 
-    // Lists API might return similar structured object or an array.
-    // Let's assume it returns a direct array or needs similar processing if it's an object.
     $listsArray = [];
     if ($response && is_array($response)) {
-        // If Sendy's get-lists API returns an object like get-brands, iterate similarly
-        // If it returns a direct array of list objects, this loop will still work if keys are numeric (0, 1, 2...)
         foreach ($response as $key => $listData) {
             if (isset($listData['id']) && isset($listData['name'])) {
                 $listsArray[] = [
@@ -186,7 +178,7 @@ function subscribeUser($email, $name, $listId, $apiKey, $subscribeUrl) {
     }
 }
 
-// --- Main Logic: Handle various requests from frontend ---
+// --- Logic: Handle various requests from frontend ---
 
 // Check for missing API key/URL early for all requests
 if ($masterApiKey === '' || empty($masterApiKey) || empty($sendySubscribeUrl) || empty($sendyBrandsApiUrl) || empty($sendyListsApiUrl)) {
@@ -216,7 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
     header('Content-Type: application/json');
 
-    $listId = $_POST['listId'] ?? ''; // This can now come from dropdown or text input
+    $listId = $_POST['listId'] ?? ''; 
+    $listName = $_POST['listName'] ?? 'Unknown List'; 
 
     if (empty($_FILES['csvFile']['tmp_name'])) {
         http_response_code(400);
@@ -302,7 +295,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
         'alreadySubscribed' => $alreadySubscribedCount,
         'invalid' => $invalidCount,
         'errors' => $errors,
-        'failedEmails' => $failedEmails
+        'failedEmails' => $failedEmails,
+        'listName' => $listName 
     ]);
     exit;
 }
@@ -314,128 +308,255 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Subscriber</title>
+    <title>Sendy Bulk Subscriber</title>
+    <link href="https://fonts.cdnfonts.com/css/konnect" rel="stylesheet">
     <style>
-        @import url('https://fonts.cdnfonts.com/css/konnect');
+        :root {
+            --primary-color: #33b1ba;
+            --secondary-color: #f3a929;
+            --background-color: #f7f7f7;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --label-color: #555;
+            --border-color: #ddd;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --info-color: #007bff;
+            --warning-color: #ffc107;
+        }
 
         body {
             font-family: 'Konnect', sans-serif;
-            background-color: #f7f7f7;
+            background-color: var(--background-color);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            color: var(--text-color);
         }
 
         .container {
-            background-color: #ffffff;
+            background-color: var(--card-background);
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
-            width: 400px;
-            max-width: 90%;
+            width: 500px; 
+            max-width: 95%;
+            box-sizing: border-box;
         }
 
         h1 {
-            color: #33b1ba;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
         }
 
-        /* Styling for inputs and dropdowns */
-        input[type="file"],
-        input[type="text"],
-        select { /* Added select */
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%;
-            box-sizing: border-box;
-            font-family: 'Konnect', sans-serif;
-        }
-        
-        button {
-            background-color: #f3a929;
-            color: #ffffff;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-            width: 100%;
-            box-sizing: border-box;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #e09a24;
-        }
-
-        #status-area {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #555;
+        .input-section {
+            background-color: #fcfcfc;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
             text-align: left;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #eee;
-            padding: 10px;
-            background-color: #fefefe;
-            border-radius: 4px;
         }
 
         .input-group {
-            text-align: left;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .input-group label {
             display: block;
-            margin-bottom: 5px;
-            color: #333;
+            margin-bottom: 8px;
+            color: var(--label-color);
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        select {
+            margin-bottom: 0; 
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: 'Konnect', sans-serif;
+            font-size: 1em;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="file"]:focus,
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(51, 177, 186, 0.2);
+            outline: none;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: #ffffff;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #e09a24;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        small {
+            display: block;
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px dashed var(--border-color);
+            margin: 30px 0;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .results-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        #status-area {
+            min-height: 80px; 
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fefefe;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 350px;
+            overflow-y: auto;
+            white-space: pre-wrap; 
+        }
+
+        .status-success { color: var(--success-color); }
+        .status-error { color: var(--error-color); font-weight: 500; }
+        .status-info { color: var(--info-color); }
+        .status-warning { color: var(--warning-color); }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        details {
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+        }
+        summary {
+            cursor: pointer;
             font-weight: bold;
+            color: var(--label-color);
+            padding: 5px 0;
         }
-
-        #listIdManualInputGroup {
-            display: block; /* Default to showing the text input */
+        details pre {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.85em;
+            white-space: pre-wrap; 
+            word-break: break-all; 
         }
-
-        #listIdDropdownGroup {
-            display: none; /* Hide the dropdown by default */
-        }
-
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Bulk Subscriber</h1>
+        <h1>Sendy Bulk Subscriber</h1>
 
-        <div class="input-group">
-            <label for="brandSelect">Select Brand:</label>
-            <select id="brandSelect" disabled>
-                <option value="">Loading brands...</option>
-            </select>
+        <div class="input-section">
+            <div class="input-group">
+                <label for="brandSelect">Select Brand:</label>
+                <select id="brandSelect" disabled>
+                    <option value="">Loading brands...</option>
+                </select>
+                <small id="brandSelectHelpText">Brands fetched from Sendy.</small>
+            </div>
+
+            <div class="input-group" id="listIdDropdownGroup">
+                <label for="listSelect">Select List:</label>
+                <select id="listSelect" disabled>
+                    <option value="">Select a brand first</option>
+                </select>
+                <small id="listSelectHelpText">Lists belonging to the selected brand.</small>
+            </div>
+
+            <hr> <div class="input-group" id="listIdManualInputGroup">
+                <label for="sendyListId">Or Enter List ID Manually:</label>
+                <input type="text" id="sendyListId" placeholder="e.g., 3v2wVngsLxKRf892fLB7vGKA">
+                <small>Use this if your list doesn't appear in the dropdown, or if you prefer to type it.</small>
+            </div>
         </div>
 
-        <div class="input-group" id="listIdDropdownGroup">
-            <label for="listSelect">Select List:</label>
-            <select id="listSelect" disabled>
-                <option value="">Select a brand first</option>
-            </select>
+        <div class="input-section">
+            <div class="input-group">
+                <label for="csvFile">Upload CSV File:</label>
+                <input type="file" id="csvFile" accept=".csv">
+                <small>Your CSV should have **email in the first column** and **name in the second (optional)**.</small>
+            </div>
+            <button id="uploadButton" onclick="uploadFile()">Upload CSV</button>
         </div>
 
-        <div class="input-group" id="listIdManualInputGroup">
-            <label for="sendyListId">Or Enter Sendy List ID (Optional):</label>
-            <input type="text" id="sendyListId" placeholder="e.g., 3v2wVngsLxKRf892fLB7vGKA">
+        <div class="results-section">
+            <h2>Upload Summary</h2>
+            <div id="status-area" aria-live="polite">
+                </div>
         </div>
-
-        <input type="file" id="csvFile" accept=".csv">
-        <button onclick="uploadFile()">Upload CSV</button>
-        <div id="status-area"></div>
     </div>
 
     <script>
@@ -445,47 +566,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
         const listIdManualInput = document.getElementById('sendyListId');
         const listIdDropdownGroup = document.getElementById('listIdDropdownGroup');
         const listIdManualInputGroup = document.getElementById('listIdManualInputGroup');
+        const uploadButton = document.getElementById('uploadButton');
 
         async function initForm() {
-            statusArea.textContent = 'Loading brands...';
-            statusArea.style.color = '#555';
-
+            updateStatus('Loading brands...', 'info');
             await fetchBrands();
 
-            // Event listener for brand selection
             brandSelect.addEventListener('change', async () => {
                 const selectedBrandId = brandSelect.value;
-                listIdManualInput.value = ''; // Clear manual input if dropdown is used
-                toggleListInput(); // Adjust visibility
+                listIdManualInput.value = ''; 
+                toggleListInputMode(); 
 
                 if (selectedBrandId) {
-                    statusArea.textContent = 'Loading lists for selected brand...';
+                    updateStatus('Loading lists for selected brand...', 'info');
                     await fetchLists(selectedBrandId);
                 } else {
                     listSelect.innerHTML = '<option value="">Select a brand first</option>';
                     listSelect.disabled = true;
-                    statusArea.textContent = '';
+                    updateStatus('Please select a brand to load lists or enter a List ID manually.', 'info');
                 }
             });
 
-            // Event listener for list selection (from dropdown)
             listSelect.addEventListener('change', () => {
-                // When a list is selected, update the hidden manual input (or just ensure its value is used)
                 listIdManualInput.value = listSelect.value;
+                toggleListInputMode(); 
             });
 
             // Event listener for manual input change
             listIdManualInput.addEventListener('input', () => {
-                // If user types in manual input, clear dropdown selection
-                listSelect.value = '';
-                toggleListInput(); // Adjust visibility
+                if (listIdManualInput.value.trim() !== '') {
+                    brandSelect.value = '';
+                    listSelect.innerHTML = '<option value="">Select a brand first</option>';
+                    listSelect.disabled = true;
+                    updateStatus('Manual List ID entered. Brand/List selections are ignored.', 'info');
+                }
+                toggleListInputMode();
             });
 
-            // Initial toggle based on input focus/value
-            toggleListInput();
+            toggleListInputMode(); 
+        }
+
+        // Helper function to update status area with classes
+        function updateStatus(message, type = 'info') {
+            statusArea.innerHTML = message;
+            statusArea.className = `status-${type}`;
+        }
+
+        // Function to decide which input method for List ID to show/hide
+        function toggleListInputMode() {
+            const isManualInputPopulated = listIdManualInput.value.trim() !== '';
+
+            if (isManualInputPopulated) {
+                listIdDropdownGroup.style.display = 'none';
+                listIdManualInputGroup.style.display = 'block';
+            } else {
+                listIdDropdownGroup.style.display = 'block';
+                listIdManualInputGroup.style.display = 'block'; 
+            }
         }
 
         async function fetchBrands() {
+            brandSelect.disabled = true; 
             try {
                 const response = await fetch(window.location.pathname, {
                     method: 'POST',
@@ -498,7 +639,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
                     throw new Error(`HTTP error! Status: ${response.status}. Response: ${errorText.substring(0, 200)}...`);
                 }
 
-                const brands = await response.json(); // This will now receive the *processed* array from PHP
+                const brands = await response.json();
 
                 brandSelect.innerHTML = '<option value="">-- Select a Brand --</option>';
                 if (brands.length > 0) {
@@ -509,19 +650,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
                         brandSelect.appendChild(option);
                     });
                     brandSelect.disabled = false;
-                    statusArea.textContent = 'Brands loaded. Please select a brand.';
+                    updateStatus('Brands loaded. Please select a brand or enter a List ID.', 'info');
                 } else {
                     brandSelect.innerHTML = '<option value="">No brands found</option>';
-                    statusArea.textContent = 'No brands found. Please check your Sendy API key and configuration.';
-                    statusArea.style.color = '#f44336';
+                    updateStatus('No brands found. Please check your Sendy API key and URL in the PHP file.', 'warning');
+                    listIdManualInputGroup.style.display = 'block';
+                    listIdDropdownGroup.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error fetching brands:', error);
-                statusArea.textContent = `Error fetching brands: ${error.message}. Check server logs.`;
-                statusArea.style.color = '#f44336';
+                updateStatus(`Error fetching brands: ${error.message}. Check server logs.`, 'error');
                 brandSelect.innerHTML = '<option value="">Error loading brands</option>';
+                brandSelect.disabled = true;
             } finally {
-                brandSelect.disabled = false; // Always re-enable, even if error
+                brandSelect.disabled = false;
             }
         }
 
@@ -551,67 +693,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
                         listSelect.appendChild(option);
                     });
                     listSelect.disabled = false;
-                    statusArea.textContent = `Lists loaded for brand. Choose a list or enter ID.`;
+                    updateStatus(`Lists loaded for brand '${brandSelect.options[brandSelect.selectedIndex].text}'. Choose a list or enter a List ID.`, 'info');
                 } else {
                     listSelect.innerHTML = '<option value="">No lists found for this brand</option>';
-                    statusArea.textContent = `No lists found for this brand. You can still enter a List ID manually.`;
-                    statusArea.style.color = '#f44336';
+                    updateStatus(`No lists found for this brand. You can still enter a List ID manually.`, 'warning');
+                    listIdManualInputGroup.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error fetching lists:', error);
-                statusArea.textContent = `Error fetching lists: ${error.message}. Check server logs.`;
-                statusArea.style.color = '#f44336';
+                updateStatus(`Error fetching lists: ${error.message}. Check server logs.`, 'error');
                 listSelect.innerHTML = '<option value="">Error loading lists</option>';
             } finally {
-                listSelect.disabled = false; // Always re-enable, even if error
+                listSelect.disabled = false;
             }
         }
-
-        // Toggles visibility between dropdown and manual input for List ID
-        function toggleListInput() {
-            if (listSelect.value) { // If a list is selected from the dropdown
-                listIdManualInputGroup.style.display = 'none';
-                listIdDropdownGroup.style.display = 'block';
-            } else if (listIdManualInput.value.trim() !== '') { // If something is typed in manual input
-                listIdDropdownGroup.style.display = 'none';
-                listIdManualInputGroup.style.display = 'block';
-            } else { // Default state or if both are empty
-                listIdDropdownGroup.style.display = 'block'; // Show dropdown by default for selection
-                listIdManualInputGroup.style.display = 'block'; // Keep manual input visible as option
-            }
-        }
-
 
         async function uploadFile() {
             const fileInput = document.getElementById('csvFile');
             const file = fileInput.files[0];
 
-            // Determine listId: Prioritize dropdown selection, then manual input
             let listId = '';
-            if (listSelect.value) {
-                listId = listSelect.value;
-            } else {
+            let listName = 'Unknown List'; 
+
+            // Determine listId: Prioritize manual input if present, otherwise dropdown selection
+            if (listIdManualInput.value.trim() !== '') {
                 listId = listIdManualInput.value.trim();
+                listName = `ID: ${listId}`; 
+            } else if (listSelect.value) { 
+                listId = listSelect.value;
+                listName = listSelect.options[listSelect.selectedIndex].textContent;
             }
 
             if (!listId) {
-                statusArea.textContent = 'Please select a Sendy List or enter a List ID.';
-                statusArea.style.color = '#f44336';
+                updateStatus('Please select a Sendy List or enter a List ID.', 'error');
                 return;
             }
 
             if (!file) {
-                statusArea.textContent = 'Please select a CSV file.';
-                statusArea.style.color = '#f44336';
+                updateStatus('Please select a CSV file to upload.', 'error');
                 return;
             }
 
-            statusArea.textContent = 'Processing file... This may take a moment.';
-            statusArea.style.color = '#555';
+            updateStatus('Uploading and processing file... This may take a moment. Please do not close this window.', 'info');
+            uploadButton.disabled = true; 
+            uploadButton.innerHTML = 'Uploading... <span class="spinner"></span>'; 
 
             const formData = new FormData();
             formData.append('csvFile', file);
-            formData.append('listId', listId); // Send the determined listId
+            formData.append('listId', listId);
+            formData.append('listName', listName); 
 
             try {
                 const response = await fetch(window.location.pathname, {
@@ -626,56 +756,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csvFile'])) {
 
                 const data = await response.json();
 
-                let statusText = 'Upload Results:\n';
-                statusText += `New subscribers: ${data.subscribed}\n`;
-                statusText += `Already subscribed: ${data.alreadySubscribed}\n`;
-                statusText += `Bounced emails: ${data.bounced}\n`;
-                statusText += `Invalid or unparsable entries: ${data.invalid}\n`;
+                // Use the listName from the response (which was passed from frontend to backend and back)
+                let summaryListName = data.listName || 'Unknown List'; 
+
+                let statusHtml = `<h3>Upload Summary for List: ${summaryListName}</h3>`;
+                statusHtml += `<p><strong>Subscribed:</strong> <span class="status-success">${data.subscribed}</span></p>`;
+                statusHtml += `<p><strong>Already Subscribed:</strong> ${data.alreadySubscribed}</p>`;
+                statusHtml += `<p><strong>Bounced:</strong> <span class="status-warning">${data.bounced}</span></p>`;
+                statusHtml += `<p><strong>Invalid/Unparsable:</strong> <span class="status-warning">${data.invalid}</span></p>`;
 
 
                 if (data.failedEmails && (data.failedEmails.bounced.length > 0 || data.failedEmails.invalid.length > 0 || data.failedEmails.other_errors.length > 0)) {
-                    statusText += '\n--- Details of Failed Emails ---\n';
+                    statusHtml += `<h4>Details of Failed Emails:</h4>`;
                     if (data.failedEmails.bounced.length > 0) {
-                        statusText += 'Bounced:\n';
-                        data.failedEmails.bounced.forEach(email => {
-                            statusText += `- ${email}\n`;
-                        });
+                        statusHtml += `<details><summary>Bounced (${data.failedEmails.bounced.length} emails)</summary><pre>${data.failedEmails.bounced.join('\n')}</pre></details>`;
                     }
                     if (data.failedEmails.invalid.length > 0) {
-                        statusText += 'Invalid (format or Sendy rejection):\n';
-                        data.failedEmails.invalid.forEach(email => {
-                            statusText += `- ${email}\n`;
-                        });
+                        statusHtml += `<details><summary>Invalid/Rejected (${data.failedEmails.invalid.length} emails)</summary><pre>${data.failedEmails.invalid.join('\n')}</pre></details>`;
                     }
-                     if (data.failedEmails.other_errors.length > 0) {
-                        statusText += 'Other errors (check server logs for details):\n';
-                        data.failedEmails.other_errors.forEach(email => {
-                            statusText += `- ${email}\n`;
-                        });
+                    if (data.failedEmails.other_errors.length > 0) {
+                        statusHtml += `<details><summary>Other Errors (${data.failedEmails.other_errors.length} emails)</summary><pre>${data.failedEmails.other_errors.join('\n')}</pre></details>`;
                     }
                 }
 
                 if (data.errors && data.errors.length > 0) {
-                    statusText += '\n--- Backend Errors (for developer) ---\n';
-                    data.errors.forEach(msg => {
-                        statusText += `- ${msg}\n`;
-                    });
+                    statusHtml += `<h4>Backend Errors (for developer reference):</h4>`;
+                    statusHtml += `<details><summary>Show Errors (${data.errors.length})</summary><pre class="status-error">${data.errors.join('\n')}</pre></details>`;
                 }
 
-                if (statusText.trim() === 'Upload Results:') {
-                    statusText = 'No valid users found in the CSV or an unexpected error occurred.';
+                if (data.subscribed === 0 && data.alreadySubscribed === 0 && data.bounced === 0 && data.invalid === 0) {
+                    statusHtml = '<p class="status-warning">No valid emails processed. Please check your CSV file format and the selected list.</p>';
                 }
 
-                statusArea.textContent = statusText.trim();
-                statusArea.style.color = '#555';
+                statusArea.innerHTML = statusHtml; 
+                statusArea.className = (data.subscribed > 0 || data.alreadySubscribed > 0) ? 'status-info' : 'status-warning';
 
             } catch (error) {
-                statusArea.textContent = `Error during upload or processing: ${error.message}. Please check your server logs for more details.`;
-                statusArea.style.color = '#f44336';
+                updateStatus(`Error during upload or processing: ${error.message}. Please check your server logs and browser console for more details.`, 'error');
+            } finally {
+                uploadButton.disabled = false; 
+                uploadButton.innerHTML = 'Upload CSV'; 
             }
         }
-
-        // Initialize the form when the DOM is ready
         document.addEventListener('DOMContentLoaded', initForm);
     </script>
 </body>
